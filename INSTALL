@@ -1,0 +1,34 @@
+Installation
+------------
+
+Install the driver with govendor fetch github.com/sjmudd/go-mysqlx-driver
+which places the driver under vendor/ and records in vendor/vendor.json details
+of the exact state of the repository that was retrieved.
+
+To use this driver reference it in your go code like this:
+
+Sample Code
+-----------
+
+```
+import (
+	"database/sql"
+        "fmt"
+
+	_ "github.com/sjmudd/go-mysqlx-driver"
+)
+
+const xprotocolDriver = "mysql/xprotocol"
+
+func main() {
+        dsn := "user:pass@tcp(127.0.0.1:33060)/db?xprotocol=1"
+        db, err := sql.Open(xprotocolDriver, dsn)
+        if err != nil {
+                err = fmt.Fatalf("failed to open connection to driver: %q, dsn: %q: %+v", xprotocolDriver, dsn, err)
+        }
+
+	// do stuff
+
+	db.Close()
+}
+```

@@ -1,0 +1,25 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "G5qBL33D1rgCxlVq9btzXFMRRm8=",
+			"path": "github.com/golang/protobuf",
+			"revision": "888eb0692c857ec880338addf316bd662d5e630e",
+			"revisionTime": "2016-08-23T21:25:17Z"
+		},
+		{
+			"checksumSHA1": "XnbEHQRzINRKXKmu9GcaqGkK4Lg=",
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "888eb0692c857ec880338addf316bd662d5e630e",
+			"revisionTime": "2016-08-23T21:25:17Z"
+		},
+		{
+			"checksumSHA1": "MYj5RnaTJH89MPyOklmZp+2ECPI=",
+			"path": "github.com/sjmudd/mysql-server-rapid-plugin-x-protocol",
+			"revision": "e29a1a9d0942fd53f9401a132837c18073c40018",
+			"revisionTime": "2016-09-09T11:50:57Z"
+		}
+	],
+	"rootPath": "bitbucket.org/sjmudd/go-mysqlx-driver"
+}

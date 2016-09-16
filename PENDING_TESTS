@@ -1,0 +1,11 @@
+
+This lists the current tests done by the driver.
+or perhaps those that still need to be done.
+
+- connect in TLS mode works
+- send a packet which is too large to fit in mysqlx_max_allowed_packet
+- character set behaviour with "odd character sets"
+- figure out session character set
+- figure out change in settings
+- add a lot more unit tests
+- add tests for protocol failure situations
