@@ -7,8 +7,7 @@ import (
 	"github.com/sjmudd/go-mysqlx-driver/debug"
 )
 
-const myName = "TestThreeRows"
-
+// genericRowsTest runs the query and checks we get back the expected number of rows
 func genericRowsTest(name, query string, expectedRows int) error {
 	const myName = "genericRowsTest"
 
@@ -19,8 +18,9 @@ func genericRowsTest(name, query string, expectedRows int) error {
 
 	debug.Msg("%s: %s: %q", myName, name, query)
 	var (
-		collectedRows, i int
-		s                string
+		collectedRows int
+		i             int    // integer response from the query
+		s             string // string response from the query
 	)
 
 	rows, err := db.Query(query)
@@ -33,7 +33,7 @@ func genericRowsTest(name, query string, expectedRows int) error {
 			return fmt.Errorf("%s: scan failed: %+v", myName, err)
 		}
 		collectedRows++
-		debug.Msg("genericRowsTest: collectedRows: %d", collectedRows)
+		debug.Msg("genericRowsTest: %s: collectedRows: %d, values: %d, %q", name, collectedRows, i, s)
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("%s rows.Err() != nil: %+v", myName, err)
@@ -49,6 +49,7 @@ func genericRowsTest(name, query string, expectedRows int) error {
 	return nil // all ok
 }
 
+// Ensure we get no rows back
 func TestZeroRows(t *testing.T) {
 	const myName = "TestZeroRows"
 	const myQuery = `SELECT '' AS result WHERE result IS NULL`
@@ -58,6 +59,7 @@ func TestZeroRows(t *testing.T) {
 	}
 }
 
+// Ensure we get one row back
 func TestOneRow(t *testing.T) {
 	const myName = "TestOneRow"
 	const myQuery = `SELECT 1, 'something'`
@@ -67,9 +69,19 @@ func TestOneRow(t *testing.T) {
 	}
 }
 
+// Ensure we get two rows back
+func TestTwoRows(t *testing.T) {
+	const myName = "TestTwoRows"
+	const myQuery = `SELECT * FROM ( (SELECT 1, "ONE") UNION ALL ( SELECT 2, "TWO") ) a`
+
+	if err := genericRowsTest(myName, myQuery, 2); err != nil {
+		t.Fatalf("%s failed: %+v", myName, err)
+	}
+}
+// Ensure we get two rows back
 func TestThreeRows(t *testing.T) {
 	const myName = "TestThreeRows"
-	const myQuery = `SELECT * FROM (  ( SELECT 1, "HELLO" ) UNION ALL ( SELECT 2, "TWO" ) UNION ALL ( SELECT 3, "THREE") ) a`
+	const myQuery = `SELECT * FROM ( (SELECT 1, "ONE") UNION ALL (SELECT 2, "TWO") UNION ALL (SELECT 3, "THREE") ) a`
 
 	if err := genericRowsTest(myName, myQuery, 3); err != nil {
 		t.Fatalf("%s failed: %+v", myName, err)
