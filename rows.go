@@ -123,16 +123,16 @@ func (rows *mysqlXRows) Close() error {
 	rows.columns = nil
 	rows.mc.pb = nil
 	rows.mc = nil
-	rows.state = queryStateNotStarted
+	rows.state = queryStateStart
 
 	debug.Msg("mysqlXRows.Close: exit")
 	return nil
 }
 
 // add the column information to the row
-func (rows *mysqlXRows) addColumn() error {
+func (rows *mysqlXRows) addColumnMetaData() error {
 	if rows == nil {
-		return fmt.Errorf("mysqlXrows.addColumn: rows == nil")
+		return fmt.Errorf("mysqlXrows.addColumnMetaData: rows == nil")
 	}
 
 	column := new(Mysqlx_Resultset.ColumnMetaData)
@@ -140,7 +140,7 @@ func (rows *mysqlXRows) addColumn() error {
 		return fmt.Errorf("error unmarshalling ColumnMetaData: %v", err)
 	}
 
-	debug.Msg("mysqlXRows.addColumn: %s", printableColumnMetaData(rows.mc.pb))
+	debug.Msg("mysqlXRows.addColumnMetaData: %s", printableColumnMetaData(rows.mc.pb))
 
 	rows.columns = append(rows.columns, column)
 	rows.mc.pb = nil
@@ -171,6 +171,7 @@ func processRow(rows *mysqlXRows, dest []driver.Value) error {
 
 // Read a row of data from the connection until no more and then return io.EOF to indicate we have finished
 func (rows *mysqlXRows) Next(dest []driver.Value) error {
+	debug.Msg("ENTER mysqlXrows.Next()")
 	// safety checks
 	if rows == nil {
 		log.Fatal("mysqlXRows.Next: rows == nil")
@@ -183,7 +184,7 @@ func (rows *mysqlXRows) Next(dest []driver.Value) error {
 
 	// Finished? Don't continue
 	if rows.state.Finished() {
-		debug.Msg("mysqlXrows.Next: rows.state.Finished() is true")
+		debug.Msg("EXIT mysqlXrows.Next(): rows.state.Finished() is true, returning io.EOF")
 		return io.EOF
 	}
 
@@ -194,17 +195,17 @@ func (rows *mysqlXRows) Next(dest []driver.Value) error {
 		}
 	}
 
-	debug.Msg("mysqlXrows.Next: rows.state: %v, dest has %d elements", rows.state.String(), len(dest))
+	debug.Msg("PRELOOP mysqlXrows.Next() rows.state: %v, dest has %d elements", rows.state.String(), len(dest))
 
 	// clean this logic up into a smaller more readable loop
 	done := false
 	for !done {
-		debug.Msg("mysqlXrows.Next: loop state: %v", rows.state.String())
+		debug.Msg("LOOP mysqlXrows.Next() state: %v", rows.state.String())
 
 		switch rows.state {
 		case queryStateWaitingRow:
 			{
-
+				debug.Msg("mysqlXrows.Next() START queryStateWaitingRow")
 				// pull in a message if needed
 				if err := rows.readMsgIfNecessary(); err != nil {
 					log.Fatalf("DEBUG: mysqlXRow.Next: failed to read data if necessary")
@@ -214,22 +215,28 @@ func (rows *mysqlXRows) Next(dest []driver.Value) error {
 				switch Mysqlx.ServerMessages_Type(rows.mc.pb.msgType) {
 				case Mysqlx.ServerMessages_RESULTSET_ROW:
 					{
+						debug.Msg("mysqlXrows.Next() process ROW")
 						if err := processRow(rows, dest); err != nil {
 							return err
 						}
 						done = true
 					}
 				case Mysqlx.ServerMessages_NOTICE:
-					rows.mc.processNotice("mysqlXRows.Next")
+					{
+						debug.Msg("mysqlXrows.Next() process NOTICE")
+						rows.mc.processNotice("mysqlXRows.Next")
+					}
 				case Mysqlx.ServerMessages_RESULTSET_FETCH_DONE:
 					{
+						debug.Msg("mysqlXrows.Next() process FESULTSET_FETCH_DONE")
 						rows.state = queryStateWaitingExecuteOk
-						done = true
+						// done = true     SKIP to next message
 						rows.mc.pb = nil
 					}
 				case Mysqlx.ServerMessages_ERROR:
 					{
 						// should treat each message
+						debug.Msg("mysqlXrows.Next() process ERROR")
 						rows.state = queryStateDone
 						done = true
 						rows.mc.pb = nil
@@ -239,9 +246,11 @@ func (rows *mysqlXRows) Next(dest []driver.Value) error {
 						log.Fatalf("mysqlXRowx.Next received unexpected message type: %s", printableMsgTypeIn(Mysqlx.ServerMessages_Type(rows.mc.pb.msgType)))
 					}
 				}
+				debug.Msg("mysqlXrows.Next() END queryStateWaitingRow")
 			}
 		case queryStateDone, queryStateWaitingExecuteOk:
 			{
+				debug.Msg("mysqlXrows.Next() START queryStateWaitingExecuteOk")
 				return io.EOF
 			}
 		default:
@@ -274,8 +283,8 @@ func (rows *mysqlXRows) collectColumnMetaData() error {
 		switch Mysqlx.ServerMessages_Type(rows.mc.pb.msgType) {
 		case Mysqlx.ServerMessages_RESULTSET_COLUMN_META_DATA:
 			{
-				if err := rows.addColumn(); err != nil {
-					return fmt.Errorf("DEBUG: mysqlXRows.collectColumnMetaData: failed to addColumn: %v", err)
+				if err := rows.addColumnMetaData(); err != nil {
+					return fmt.Errorf("DEBUG: mysqlXRows.collectColumnMetaData: failed to addColumnMetaData: %v", err)
 				}
 			}
 		case Mysqlx.ServerMessages_RESULTSET_ROW:
