@@ -15,9 +15,9 @@ states are as shown below:
 * if we get an error message (where we expect) we act on it and don't consider it an error
 * if we get another type of error we immediately abort after reporting the problem.
 
-queryStateNotStarted
+queryStateStart
          |
-        [S]       +-------[B/N]------+
+         |        +-------[B/N]------+
          |        |                  |
          V        V                  |
 queryStateWaitingForColumnMetaData ------[E/*]-----+
@@ -49,7 +49,7 @@ Events:
 type queryState int
 
 const (
-	queryStateNotStarted            queryState = iota // not started yet
+	queryStateStart                 queryState = iota // not started yet
 	queryStateWaitingColumnMetaData                   // query sent waiting for some data
 	queryStateWaitingRow                              // query sent waiting for row data
 	queryStateWaitingExecuteOk                        // query sent waiting for execute ok
@@ -62,7 +62,7 @@ var queryStateName map[queryState]string
 
 func init() {
 	queryStateName = map[queryState]string{
-		queryStateNotStarted:            "Not Started",
+		queryStateStart:                 "Start",
 		queryStateWaitingColumnMetaData: "Waiting for Column Metadata",
 		queryStateWaitingRow:            "Waiting for Row",
 		queryStateWaitingExecuteOk:      "Waiting for Execute Ok",
@@ -83,4 +83,9 @@ func (q *queryState) String() string {
 // Finished means we're not waiting for anything whether due to an error or due to completing the state changes
 func (q *queryState) Finished() bool {
 	return q != nil && (*q == queryStateDone || *q == queryStateError)
+}
+
+// CollectingColumnMetaData returns true if we're still collecting column meta data.
+func (q *queryState) CollectingColumnMetaData() bool {
+	return !q.Finished() && *q != queryStateWaitingRow
 }
